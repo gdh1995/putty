@@ -25,7 +25,7 @@ struct ssh2_userauth_state {
     Filename *keyfile;
     bool show_banner, tryagent, change_username;
     char *hostname, *fullhostname;
-    char *default_username;
+    char *default_username, *default_password;
     bool try_ki_auth, try_gssapi_auth, try_gssapi_kex_auth, gssapi_fwd;
 
     ptrlen session_id;
@@ -127,7 +127,7 @@ PacketProtocolLayer *ssh2_userauth_new(
     PacketProtocolLayer *successor_layer,
     const char *hostname, const char *fullhostname,
     Filename *keyfile, bool show_banner, bool tryagent,
-    const char *default_username, bool change_username,
+    const char *default_username, bool change_username, const char *default_password,
     bool try_ki_auth, bool try_gssapi_auth, bool try_gssapi_kex_auth,
     bool gssapi_fwd, struct ssh_connection_shared_gss_state *shgss)
 {
@@ -143,6 +143,7 @@ PacketProtocolLayer *ssh2_userauth_new(
     s->tryagent = tryagent;
     s->default_username = dupstr(default_username);
     s->change_username = change_username;
+    s->default_password = dupstr(default_password);
     s->try_ki_auth = try_ki_auth;
     s->try_gssapi_auth = try_gssapi_auth;
     s->try_gssapi_kex_auth = try_gssapi_kex_auth;
@@ -178,6 +179,10 @@ static void ssh2_userauth_free(PacketProtocolLayer *ppl)
     filename_free(s->keyfile);
     sfree(s->default_username);
     sfree(s->locally_allocated_username);
+    if (s->default_password != NULL) {
+        smemclr(s->default_password, strlen(s->default_password));
+        sfree(s->default_password);
+    }
     sfree(s->hostname);
     sfree(s->fullhostname);
     sfree(s->publickey_comment);
@@ -390,7 +395,13 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
      *    retype it!
      */
     s->got_username = false;
+    s->password = NULL;
     while (1) {
+        if (s->password != NULL) {
+            smemclr(s->password, strlen(s->password));
+            sfree(s->password);
+            s->password = NULL;
+        }
         /*
          * Get a username.
          */
@@ -435,8 +446,15 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                 dupstr(s->cur_prompt->prompts[0]->result);
             free_prompts(s->cur_prompt);
         } else {
+            char *stuff = s->default_password;
+            if (stuff != NULL && stuff[0] != '\0') {
+                s->password = dupstr(stuff);
+                stuff = " with password";
+            } else {
+                stuff = "";
+            }
             if ((flags & FLAG_VERBOSE) || (flags & FLAG_INTERACTIVE))
-                ppl_printf("Using username \"%s\".\r\n", s->username);
+                ppl_printf("Using username \"%s\"%s.\r\n", s->username, stuff);
         }
         s->got_username = true;
 
@@ -1418,6 +1436,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
 
                 s->ppl.bpp->pls->actx = SSH2_PKTCTX_PASSWORD;
 
+                if (s->password == NULL) {
                 s->cur_prompt = new_prompts();
                 s->cur_prompt->to_server = true;
                 s->cur_prompt->from_server = false;
@@ -1459,6 +1478,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                  */
                 s->password = dupstr(s->cur_prompt->prompts[0]->result);
                 free_prompts(s->cur_prompt);
+                }
 
                 /*
                  * Send the password packet.
@@ -1652,6 +1672,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                  */
                 smemclr(s->password, strlen(s->password));
                 sfree(s->password);
+                s->password = NULL;
 
             } else {
                 ssh_bpp_queue_disconnect(

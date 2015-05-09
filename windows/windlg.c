@@ -386,6 +386,18 @@ static void create_controls(HWND hwnd, char *path)
     }
 }
 
+WNDPROC OldSessionEditProc = NULL;
+
+static INT_PTR CALLBACK SessionEditProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    WORD vk = LOWORD(wParam);
+    if (msg == WM_KEYDOWN && (vk == VK_DOWN || vk == VK_UP)) {
+        HWND parent = GetParent(hwnd);
+        WPARAM id = (WPARAM)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        return SendMessage(parent, WM_COMMAND, (WPARAM)((EN_VSCROLL << 16) + id), vk == VK_DOWN);
+    }
+    return CallWindowProc(OldSessionEditProc, hwnd, msg, wParam, lParam);
+}
+
 /*
  * This function is the configuration box.
  * (Being a dialog procedure, in general it returns 0 if the default
@@ -539,14 +551,28 @@ static INT_PTR CALLBACK GenericMainDlgProc(HWND hwnd, UINT msg,
          */
         {
             int i;
-            struct winctrl *c;
+            struct winctrl *c, *firstC = NULL, *sessionEdit = NULL;
 
-            for (i = 0; (c = winctrl_findbyindex(&ctrls_panel, i)) != NULL;
+            for (i = 1; (c = winctrl_findbyindex(&ctrls_panel, i)) != NULL;
                  i++) {
                 if (c->ctrl) {
-                    dlg_set_focus(c->ctrl, &dp);
-                    break;
+                    if (!firstC) {
+                        firstC = c;
+                    }
+                    if (c->ctrl->generic.type == CTRL_EDITBOX && c->ctrl->generic.label
+                        && !strcmp(c->ctrl->generic.label, "Saved Sessions")) {
+                        firstC = sessionEdit = c;
+                        break;
+                    }
                 }
+            }
+            if (firstC) {
+                dlg_set_focus(firstC->ctrl, &dp);
+            }
+            if (sessionEdit) {
+                HWND hw = GetDlgItem(dp.hwnd, sessionEdit->base_id + 1);
+                SetWindowLongPtr(hw, GWLP_USERDATA, sessionEdit->base_id + 1);
+                OldSessionEditProc = (WNDPROC)SetWindowLongPtr(hw, GWLP_WNDPROC, (LONG_PTR)SessionEditProc);
             }
         }
 

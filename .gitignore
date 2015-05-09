@@ -153,3 +153,4 @@
 /windows/*.msi
 /windows/*.wixobj
 /windows/*.wixpdb
+/windows/*.aps

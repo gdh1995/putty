@@ -588,6 +588,7 @@ void save_open_settings(settings_w *sesskey, Conf *conf)
     write_setting_s(sesskey, "UserName", conf_get_str(conf, CONF_username));
     write_setting_b(sesskey, "UserNameFromEnvironment", conf_get_bool(conf, CONF_username_from_env));
     write_setting_s(sesskey, "LocalUserName", conf_get_str(conf, CONF_localusername));
+    write_setting_s(sesskey, "PassWord", conf_get_str(conf, CONF_password));
     write_setting_b(sesskey, "NoPTY", conf_get_bool(conf, CONF_nopty));
     write_setting_b(sesskey, "Compression", conf_get_bool(conf, CONF_compression));
     write_setting_b(sesskey, "TryAgent", conf_get_bool(conf, CONF_tryagent));
@@ -936,6 +937,7 @@ void load_open_settings(settings_r *sesskey, Conf *conf)
     gppb(sesskey, "UserNameFromEnvironment", false,
          conf, CONF_username_from_env);
     gpps(sesskey, "LocalUserName", "", conf, CONF_localusername);
+    gpps(sesskey, "PassWord", "", conf, CONF_password);
     gppb(sesskey, "NoPTY", false, conf, CONF_nopty);
     gppb(sesskey, "Compression", false, conf, CONF_compression);
     gppb(sesskey, "TryAgent", true, conf, CONF_tryagent);
@@ -1180,7 +1182,7 @@ void load_open_settings(settings_r *sesskey, Conf *conf)
                       conf, CONF_mousepaste, CONF_mousepaste_custom);
     read_clip_setting(sesskey, "CtrlShiftIns", CLIPUI_DEFAULT_INS,
                       conf, CONF_ctrlshiftins, CONF_ctrlshiftins_custom);
-    read_clip_setting(sesskey, "CtrlShiftCV", CLIPUI_NONE,
+    read_clip_setting(sesskey, "CtrlShiftCV", CLIPUI_DEFAULT_CTRL_SHIFT,
                       conf, CONF_ctrlshiftcv, CONF_ctrlshiftcv_custom);
     /*
      * The empty default for LineCodePage will be converted later

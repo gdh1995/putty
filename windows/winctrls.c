@@ -1813,6 +1813,9 @@ bool winctrl_handle_command(struct dlgparam *dp, UINT msg,
         if (msg == WM_COMMAND && !ctrl->editbox.has_list &&
             HIWORD(wParam) == EN_CHANGE)
             ctrl->generic.handler(ctrl, dp, dp->data, EVENT_VALCHANGE);
+        if (msg == WM_COMMAND && !ctrl->editbox.has_list &&
+            HIWORD(wParam) == EN_VSCROLL)
+            ctrl->generic.handler(ctrl, dp, dp->data, lParam ? EVENT_ITER_NEXT : EVENT_ITER_PREV);
         if (msg == WM_COMMAND &&
             ctrl->editbox.has_list) {
             if (HIWORD(wParam) == CBN_SELCHANGE) {
@@ -2390,6 +2393,7 @@ void dlg_set_focus(union control *ctrl, dlgparam *dp)
     }
     ctl = GetDlgItem(dp->hwnd, id);
     SetFocus(ctl);
+    winctrl_set_focus(ctrl, dp, 1);
 }
 
 /*

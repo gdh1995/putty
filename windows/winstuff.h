@@ -698,6 +698,7 @@ char *get_jumplist_registry_entries(void);
 #define CLIPUI_DEFAULT_AUTOCOPY true
 #define CLIPUI_DEFAULT_MOUSE CLIPUI_EXPLICIT
 #define CLIPUI_DEFAULT_INS CLIPUI_EXPLICIT
+#define CLIPUI_DEFAULT_CTRL_SHIFT CLIPUI_EXPLICIT
 
 /* In winmisc.c */
 char *registry_get_string(HKEY root, const char *path, const char *leaf);

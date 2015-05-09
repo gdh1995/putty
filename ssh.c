@@ -256,6 +256,7 @@ static void ssh_got_ssh_version(struct ssh_version_receiver *rcv,
                     conf_get_bool(ssh->conf, CONF_ssh_show_banner),
                     conf_get_bool(ssh->conf, CONF_tryagent), username,
                     conf_get_bool(ssh->conf, CONF_change_username),
+                    conf_get_str(ssh->conf, CONF_password),
                     conf_get_bool(ssh->conf, CONF_try_ki_auth),
 #ifndef NO_GSSAPI
                     conf_get_bool(ssh->conf, CONF_try_gssapi_auth),

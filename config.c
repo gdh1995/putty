@@ -694,13 +694,19 @@ static void sessionsaver_handler(union control *ctrl, dlgparam *dlg,
                 dlg_listbox_add(ctrl, dlg, ssd->sesslist.sessions[i]);
             dlg_update_done(ctrl, dlg);
         }
+    } else if (event == EVENT_ITER_NEXT || event == EVENT_ITER_PREV) {
+      int i = dlg_listbox_index(ssd->listbox, dlg);
+      i += event == EVENT_ITER_NEXT ? 1 : -1;
+      if (i >= 0 && i < ssd->sesslist.nsessions) {
+        dlg_listbox_select(ssd->listbox, dlg, i);
+      }
     } else if (event == EVENT_VALCHANGE) {
         int top, bottom, halfway, i;
         if (ctrl == ssd->editbox) {
             sfree(ssd->savedsession);
             ssd->savedsession = dlg_editbox_get(ctrl, dlg);
             top = ssd->sesslist.nsessions;
-            bottom = -1;
+    bottom = 0;
             while (top-bottom > 1) {
                 halfway = (top+bottom)/2;
                 i = strcmp(ssd->savedsession, ssd->sesslist.sessions[halfway]);
@@ -712,6 +718,16 @@ static void sessionsaver_handler(union control *ctrl, dlgparam *dlg,
             }
             if (top == ssd->sesslist.nsessions) {
                 top -= 1;
+            }
+            else if (top == 1 && ssd->savedsession[0] < ssd->sesslist.sessions[1][0]) {
+                top = 0;
+            }
+            else if (top == 1 && ssd->savedsession[0] == ssd->sesslist.sessions[1][0]) {
+                i = min(strlen(ssd->savedsession), strlen(ssd->sesslist.sessions[1]));
+                i = strncmp(ssd->savedsession, ssd->sesslist.sessions[1], i);
+                if (i < 0) {
+                    top = 0;
+                }
             }
             dlg_listbox_select(ssd->listbox, dlg, top);
         }
@@ -805,6 +821,15 @@ static void sessionsaver_handler(union control *ctrl, dlgparam *dlg,
              */
             if (conf_launchable(conf)) {
                 dlg_end(dlg, 1);
+            } else if (dlg_last_focused(ctrl, dlg) == ssd->editbox) {
+                Conf *conf2 = conf_new();
+                bool mbl = FALSE;
+                if (load_selected_session(ssd, dlg, conf2, &mbl) &&
+                    mbl && conf_launchable(conf2)) {
+                    conf_copy_into(conf, conf2);
+                    dlg_end(dlg, 1);
+                }
+                conf_free(conf2);
             } else
                 dlg_beep(dlg);
         } else if (ctrl == ssd->cancelbutton) {
@@ -2165,6 +2190,9 @@ void setup_config_box(struct controlbox *b, bool midsession,
             ctrl_editbox(s, "Auto-login username", 'u', 50,
                          HELPCTX(connection_username),
                          conf_editbox_handler, I(CONF_username), I(1));
+            ctrl_editbox(s, "Auto-login password", 'w', 50,
+                         HELPCTX(connection_password),
+                         conf_editbox_handler, I(CONF_password), I(1));
             {
                 /* We assume the local username is sufficiently stable
                  * to include on the dialog box. */

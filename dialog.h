@@ -101,7 +101,9 @@ enum {
     EVENT_ACTION,
     EVENT_VALCHANGE,
     EVENT_SELCHANGE,
-    EVENT_CALLBACK
+    EVENT_CALLBACK,
+    EVENT_ITER_NEXT,
+    EVENT_ITER_PREV,
 };
 typedef void (*handler_fn)(union control *ctrl, dlgparam *dp,
                            void *data, int event);
